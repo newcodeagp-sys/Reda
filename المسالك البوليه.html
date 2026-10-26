@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>قسم المسالك البولية</title>
+<style>
+body {
+    font-family: 'Tahoma', sans-serif;
+    direction: rtl;
+    background-color: #eef7f2;
+    margin: 0;
+    padding: 20px;
+}
+h1 { text-align: center; color: #198754; }
+.section {
+    background: #fff;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 15px 0;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+label { font-weight: bold; display: block; margin-bottom: 5px; }
+input[type="text"], input[type="number"], input[type="file"], select, textarea {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+textarea { height: 60px; resize: vertical; }
+button { background-color: #198754; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
+button:hover { background-color: #157347; }
+.case-entry {
+    background-color: #eaf8f0;
+    padding: 10px;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+.case-entry img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-top: 8px;
+    border: 1px solid #ccc;
+}
+.flex-row { display: flex; gap: 10px; }
+.flex-row input { width: 48%; }
+</style>
+</head>
+<body>
+
+<h1>🚻 قسم المسالك البولية</h1>
+
+<div class="section">
+    <label>اسم الحالة / التقرير</label>
+    <textarea id="urologyName" placeholder="أدخل اسم الحالة أو نوع الفحص..."></textarea>
+
+    <div class="flex-row">
+        <div>
+            <label>عمر المريض</label>
+            <input type="number" id="urologyAge" placeholder="بالسنوات">
+        </div>
+    </div>
+
+    <label>نوع الفحص / التشخيص</label>
+    <select id="urologyExamType">
+        <option value="">اختر نوع الفحص</option>
+        <option value="تحاليل">تحاليل</option>
+        <option value="أشعة">أشعة</option>
+        <option value="تشخيص مرض">تشخيص مرض</option>
+        <option value="متابعة">متابعة</option>
+    </select>
+
+    <label>رفع صورة الفحص أو التقرير</label>
+    <input type="file" id="urologyFile" accept="image/*">
+
+    <label>ملاحظات الطبيب أو المريض</label>
+    <textarea id="urologyNote" placeholder="أدخل ملاحظتك أو تشخيص الحالة..."></textarea>
+
+    <button onclick="saveUrologyCase()">حفظ الحالة</button>
+</div>
+
+<h2>📋 سجل المريض</h2>
+<div id="urologyList"></div>
+
+<script>
+const urologyList = document.getElementById('urologyList');
+
+function saveUrologyCase() {
+    const name = document.getElementById('urologyName').value.trim();
+    const age = document.getElementById('urologyAge').value.trim();
+    const examType = document.getElementById('urologyExamType').value;
+    const note = document.getElementById('urologyNote').value.trim();
+    const fileInput = document.getElementById('urologyFile');
+
+    if(!name){
+        alert("من فضلك أدخل اسم الحالة أو التقرير");
+        return;
+    }
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ar-EG');
+    const timeStr = now.toLocaleTimeString('ar-EG');
+
+    function addEntry(imgSrc){
+        const entry = document.createElement('div');
+        entry.className = "case-entry";
+        entry.innerHTML = `
+            <strong>اسم الحالة:</strong> ${name} <br>
+            <strong>العمر:</strong> ${age || "غير محدد"} <br>
+            <strong>نوع الفحص:</strong> ${examType || "غير محدد"} <br>
+            <strong>الملاحظات:</strong> ${note || "لا توجد"} <br>
+            <strong>التاريخ:</strong> ${dateStr} - <strong>الوقت:</strong> ${timeStr} <br>
+            ${imgSrc ? `<img src="${imgSrc}" alt="تقرير الحالة">` : ""}
+        `;
+        urologyList.prepend(entry);
+
+        // حفظ نسخة في localStorage
+        let allRecords = JSON.parse(localStorage.getItem("allMedicalRecords")) || [];
+        const key = name + "|" + age + "|" + examType + "|" + note + "|" + dateStr + "|" + timeStr;
+        const exists = allRecords.some(r => r.key === key && r.section === "المسالك البولية");
+        if(!exists){
+            const record = {
+                section: "المسالك البولية",
+                name,
+                age,
+                examType,
+                note,
+                date: dateStr,
+                time: timeStr,
+                image: imgSrc || null,
+                key
+            };
+            allRecords.push(record);
+            localStorage.setItem("allMedicalRecords", JSON.stringify(allRecords));
+        }
+    }
+
+    if(fileInput.files.length > 0){
+        const reader = new FileReader();
+        reader.onload = function(e){
+            addEntry(e.target.result);
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    } else {
+        addEntry(null);
+    }
+
+    // مسح الحقول بعد الحفظ
+    document.getElementById('urologyName').value = "";
+    document.getElementById('urologyAge').value = "";
+    document.getElementById('urologyExamType').value = "";
+    document.getElementById('urologyNote').value = "";
+    document.getElementById('urologyFile').value = "";
+}
+
+// تحميل البيانات عند فتح الصفحة
+window.onload = function(){
+    const allRecords = JSON.parse(localStorage.getItem("allMedicalRecords")) || [];
+    allRecords.filter(r => r.section === "المسالك البولية").forEach(record => {
+        const entry = document.createElement('div');
+        entry.className = "case-entry";
+        entry.innerHTML = `
+            <strong>اسم الحالة:</strong> ${record.name} <br>
+            <strong>العمر:</strong> ${record.age || "غير محدد"} <br>
+            <strong>نوع الفحص:</strong> ${record.examType || "غير محدد"} <br>
+            <strong>الملاحظات:</strong> ${record.note || "لا توجد"} <br>
+            <strong>التاريخ:</strong> ${record.date} - <strong>الوقت:</strong> ${record.time} <br>
+            ${record.image ? `<img src="${record.image}" alt="تقرير الحالة">` : ""}
+        `;
+        urologyList.prepend(entry);
+    });
+};
+</script>
+
+</body>
+</html>

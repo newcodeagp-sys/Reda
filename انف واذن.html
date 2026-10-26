@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قسم الأنف والأذن</title>
+    <style>
+        body {
+            font-family: 'Tahoma', sans-serif;
+            direction: rtl;
+            background-color: #eef7f2;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #198754;
+        }
+
+        .section {
+            background: #fff;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="file"], textarea {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        textarea {
+            height: 60px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: #198754;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #157347;
+        }
+
+        .case-entry {
+            background-color: #eaf8f0;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .case-entry img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 8px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>👃👂 قسم الأنف والأذن</h1>
+
+    <div class="section">
+        <label>اسم الحالة / التقرير</label>
+        <textarea id="entName" placeholder="أدخل اسم الحالة أو نوع الفحص..."></textarea>
+
+        <label>رفع صورة الفحص أو التقرير</label>
+        <input type="file" id="entFile" accept="image/*">
+
+        <label>ملاحظات الطبيب أو المريض</label>
+        <textarea id="entNote" placeholder="أدخل ملاحظتك أو تشخيص الحالة..."></textarea>
+
+        <button onclick="saveEntCase()">حفظ الحالة</button>
+    </div>
+
+    <h2>📋 سجل المريض</h2>
+    <div id="entList"></div>
+
+    <script>
+        const entList = document.getElementById('entList');
+
+        function saveEntCase() {
+            const name = document.getElementById('entName').value;
+            const note = document.getElementById('entNote').value;
+            const fileInput = document.getElementById('entFile');
+
+            if (name.trim() === "") {
+                alert("من فضلك أدخل اسم الحالة أو التقرير");
+                return;
+            }
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ar-EG');
+            const timeStr = now.toLocaleTimeString('ar-EG');
+
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    addEntEntry(name, note, dateStr, timeStr, e.target.result);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                addEntEntry(name, note, dateStr, timeStr, null);
+            }
+
+            document.getElementById('entName').value = "";
+            document.getElementById('entNote').value = "";
+            document.getElementById('entFile').value = "";
+        }
+
+        function addEntEntry(name, note, dateStr, timeStr, imgSrc) {
+            const entry = document.createElement('div');
+            entry.className = "case-entry";
+            entry.innerHTML = `
+                <strong>اسم الحالة:</strong> ${name} <br>
+                <strong>التاريخ:</strong> ${dateStr} - <strong>الوقت:</strong> ${timeStr} <br>
+                <strong>الملاحظات:</strong> ${note || "لا توجد"} <br>
+                ${imgSrc ? `<img src="${imgSrc}" alt="تقرير الأنف والأذن">` : ""}
+            `;
+            entList.prepend(entry);
+        }
+    </script>
+
+</body>
+</html>

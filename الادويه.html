@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الأدوية</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            background-color: #f0f4f7;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #0d6efd;
+        }
+        .medicine-card {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="file"], textarea {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        textarea {
+            height: 60px;
+            resize: vertical;
+        }
+        button {
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0b5ed7;
+        }
+        .preview-container {
+            margin-top: 15px;
+        }
+        .preview-container img {
+            max-width: 100%;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .medicine-entry {
+            background-color: #e9f0ff;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>الأدوية</h1>
+
+    <div class="medicine-card">
+        <label>اسم الدواء</label>
+        <textarea id="medicineName" placeholder="أدخل اسم الدواء"></textarea>
+
+        <label>رفع صورة الدواء (اختياري)</label>
+        <input type="file" id="medicineFile" accept="image/*">
+
+        <label>ملاحظة عن الدواء</label>
+        <textarea id="medicineNote" placeholder="أضف ملاحظتك هنا"></textarea>
+
+        <button onclick="saveMedicine()">حفظ الدواء</button>
+    </div>
+
+    <h2>الأدوية المحفوظة</h2>
+    <div id="medicineList" class="preview-container"></div>
+
+    <script>
+        const medicineList = document.getElementById('medicineList');
+
+        function saveMedicine() {
+            const name = document.getElementById('medicineName').value;
+            const note = document.getElementById('medicineNote').value;
+            const fileInput = document.getElementById('medicineFile');
+
+            if(name.trim() === ""){
+                alert("من فضلك أدخل اسم الدواء");
+                return;
+            }
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ar-EG');
+            const timeStr = now.toLocaleTimeString('ar-EG');
+
+            if(fileInput.files.length > 0){
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    addMedicineEntry(name, note, dateStr, timeStr, e.target.result);
+                }
+                reader.readAsDataURL(file);
+            } else {
+                addMedicineEntry(name, note, dateStr, timeStr, null);
+            }
+
+            // تنظيف الحقول
+            document.getElementById('medicineName').value = "";
+            document.getElementById('medicineNote').value = "";
+            document.getElementById('medicineFile').value = "";
+        }
+
+        function addMedicineEntry(name, note, dateStr, timeStr, imgSrc) {
+
+            /*** ------- عرض الدواء في نفس الصفحة ------- ***/
+            const entry = document.createElement('div');
+            entry.className = "medicine-entry";
+            entry.innerHTML = `
+                <strong>اسم الدواء:</strong> ${name} <br>
+                <strong>التاريخ:</strong> ${dateStr} <strong>الوقت:</strong> ${timeStr} <br>
+                <strong>ملاحظة:</strong> ${note || "لا توجد"} <br>
+                ${imgSrc ? `<img src="${imgSrc}" alt="دواء ${name}">` : ''}
+            `;
+            medicineList.prepend(entry);
+
+            /*** ------- إرسال الداتا لصفحة السجلات بدون تكرار ------- ***/
+            let allRecords = JSON.parse(localStorage.getItem("allMedicalRecords")) || [];
+
+            const key = name + "|" + note + "|" + dateStr + "|" + timeStr;
+
+            const exists = allRecords.some(r => r.key === key && r.section === "الأدوية");
+
+            if(!exists){
+                const record = {
+                    section: "الأدوية",
+                    name,
+                    note,
+                    date: dateStr,
+                    time: timeStr,
+                    image: imgSrc || null,
+                    key
+                };
+
+                allRecords.push(record);
+                localStorage.setItem("allMedicalRecords", JSON.stringify(allRecords));
+            }
+        }
+    </script>
+</body>
+</html>

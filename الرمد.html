@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>قسم العيون</title>
+<style>
+body {
+    font-family: 'Tahoma', sans-serif;
+    direction: rtl;
+    background-color: #eef7f2;
+    margin: 0;
+    padding: 20px;
+}
+h1 { text-align: center; color: #198754; }
+.section {
+    background: #fff;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 15px 0;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+label { font-weight: bold; display: block; margin-bottom: 5px; }
+input[type="text"], input[type="file"], textarea {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+textarea { height: 60px; resize: vertical; }
+button { background-color: #198754; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
+button:hover { background-color: #157347; }
+.case-entry {
+    background-color: #eaf8f0;
+    padding: 10px;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+.case-entry img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-top: 8px;
+    border: 1px solid #ccc;
+}
+.vision { display: flex; gap: 10px; }
+.vision input { width: 48%; }
+</style>
+</head>
+<body>
+
+<h1>👁️ قسم العيون</h1>
+
+<div class="section">
+    <label>اسم الحالة / التقرير</label>
+    <textarea id="eyeName" placeholder="أدخل اسم الحالة أو نوع الفحص..."></textarea>
+
+    <div class="vision">
+        <div>
+            <label>👁️ مقاس النظر (العين اليمنى)</label>
+            <input type="text" id="rightEye" placeholder="مثلاً: 6/6 أو 6/9">
+        </div>
+        <div>
+            <label>👁️ مقاس النظر (العين اليسرى)</label>
+            <input type="text" id="leftEye" placeholder="مثلاً: 6/6 أو 6/12">
+        </div>
+    </div>
+
+    <label>رفع صورة الفحص أو التقرير</label>
+    <input type="file" id="eyeFile" accept="image/*">
+
+    <label>ملاحظات الطبيب أو المريض</label>
+    <textarea id="eyeNote" placeholder="أدخل ملاحظتك أو تشخيص الحالة..."></textarea>
+
+    <button onclick="saveEyeCase()">حفظ الحالة</button>
+</div>
+
+<h2>📋 سجل المريض</h2>
+<div id="eyeList"></div>
+
+<script>
+const eyeList = document.getElementById('eyeList');
+
+function saveEyeCase() {
+    const name = document.getElementById('eyeName').value.trim();
+    const rightEye = document.getElementById('rightEye').value.trim();
+    const leftEye = document.getElementById('leftEye').value.trim();
+    const note = document.getElementById('eyeNote').value.trim();
+    const fileInput = document.getElementById('eyeFile');
+
+    if(!name){
+        alert("من فضلك أدخل اسم الحالة");
+        return;
+    }
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ar-EG');
+    const timeStr = now.toLocaleTimeString('ar-EG');
+
+    function addEntry(imgSrc){
+        const entry = document.createElement('div');
+        entry.className = "case-entry";
+        entry.innerHTML = `
+            <strong>اسم الحالة:</strong> ${name} <br>
+            <strong>العين اليمنى:</strong> ${rightEye || "غير محدد"} <br>
+            <strong>العين اليسرى:</strong> ${leftEye || "غير محدد"} <br>
+            <strong>الملاحظات:</strong> ${note || "لا توجد"} <br>
+            <strong>التاريخ:</strong> ${dateStr} - <strong>الوقت:</strong> ${timeStr} <br>
+            ${imgSrc ? `<img src="${imgSrc}" alt="تقرير الحالة">` : ""}
+        `;
+        eyeList.prepend(entry);
+
+        // حفظ نسخة في localStorage بدون تكرار
+        let allRecords = JSON.parse(localStorage.getItem("allMedicalRecords")) || [];
+        const key = name + "|" + rightEye + "|" + leftEye + "|" + note + "|" + dateStr + "|" + timeStr;
+        const exists = allRecords.some(r => r.key === key && r.section === "العيون");
+        if(!exists){
+            const record = {
+                section: "العيون",
+                name,
+                rightEye,
+                leftEye,
+                note,
+                date: dateStr,
+                time: timeStr,
+                image: imgSrc || null,
+                key
+            };
+            allRecords.push(record);
+            localStorage.setItem("allMedicalRecords", JSON.stringify(allRecords));
+        }
+    }
+
+    if(fileInput.files.length > 0){
+        const reader = new FileReader();
+        reader.onload = function(e){
+            addEntry(e.target.result);
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    } else {
+        addEntry(null);
+    }
+
+    // مسح الحقول بعد الحفظ
+    document.getElementById('eyeName').value = "";
+    document.getElementById('rightEye').value = "";
+    document.getElementById('leftEye').value = "";
+    document.getElementById('eyeNote').value = "";
+    document.getElementById('eyeFile').value = "";
+}
+
+// تحميل البيانات عند فتح الصفحة
+window.onload = function(){
+    const allRecords = JSON.parse(localStorage.getItem("allMedicalRecords")) || [];
+    allRecords.filter(r => r.section === "العيون").forEach(record => {
+        const entry = document.createElement('div');
+        entry.className = "case-entry";
+        entry.innerHTML = `
+            <strong>اسم الحالة:</strong> ${record.name} <br>
+            <strong>العين اليمنى:</strong> ${record.rightEye || "غير محدد"} <br>
+            <strong>العين اليسرى:</strong> ${record.leftEye || "غير محدد"} <br>
+            <strong>الملاحظات:</strong> ${record.note || "لا توجد"} <br>
+            <strong>التاريخ:</strong> ${record.date} - <strong>الوقت:</strong> ${record.time} <br>
+            ${record.image ? `<img src="${record.image}" alt="تقرير الحالة">` : ""}
+        `;
+        eyeList.prepend(entry);
+    });
+};
+</script>
+
+</body>
+</html>

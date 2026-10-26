@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>التحاليل الطبية</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    direction: rtl;
+    background-color: #8cb1ce;
+    padding: 20px;
+}
+h1 { text-align: center; color: #0d6efd; }
+.test-card {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 9px 20px rgba(17, 0, 250, 0.555);
+}
+label { font-weight: bold; display: block; margin-bottom: 5px; }
+input[type="file"], input[type="text"], input[type="tel"], select, textarea {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+textarea { height: 60px; resize: vertical; }
+button { background-color: #0d6dfd; color: #fff; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; }
+button:hover { background-color: #0b5dd7; }
+.preview-container { margin-top: 15px; }
+.preview-container img { max-width: 100%; border-radius: 5px; margin-bottom: 10px; border: 1px solid #ccc; }
+.test-entry {
+    background-color: #e9f0ff;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+</style>
+</head>
+<body>
+
+<h1>التحاليل الطبية</h1>
+
+<div class="test-card">
+    <label>نوع التحليل</label>
+    <select id="testType">
+        <option value="تحليل دم">تحليل دم</option>
+        <option value="تحليل بول">تحليل بول</option>
+        <option value="تحليل كيمياء الدم">تحليل كيمياء الدم</option>
+        <option value="تحليل هرمونات">تحليل هرمونات</option>
+        <option value="تحاليل أخرى">تحاليل أخرى</option>
+    </select>
+
+    <label>رفع ملف التحليل</label>
+    <input type="file" id="testFile" accept="image/*,.pdf">
+
+    <label>ملاحظة عن التحليل</label>
+    <textarea id="testNote" placeholder="أضف ملاحظتك هنا"></textarea>
+
+    <label>اسم المعمل</label>
+    <input type="text" id="labName" placeholder="أدخل اسم المعمل">
+
+    <label>رقم التواصل</label>
+    <input type="tel" id="labContact" placeholder="أدخل رقم التواصل">
+
+    <button onclick="saveTest()">حفظ التحليل</button>
+</div>
+
+<h2>التحاليل المحفوظة</h2>
+<div id="testList" class="preview-container"></div>
+
+<script>
+const testList = document.getElementById('testList');
+
+function saveTest() {
+    const testType = document.getElementById('testType').value;
+    const note = document.getElementById('testNote').value.trim();
+    const labName = document.getElementById('labName').value.trim();
+    const labContact = document.getElementById('labContact').value.trim();
+    const fileInput = document.getElementById('testFile');
+
+    if(!testType || !labName){
+        alert("من فضلك أدخل نوع التحليل واسم المعمل");
+        return;
+    }
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ar-EG');
+    const timeStr = now.toLocaleTimeString('ar-EG');
+
+    function addEntry(imgSrc){
+        const entry = document.createElement('div');
+        entry.className = "test-entry";
+        entry.innerHTML = `
+            <strong>نوع التحليل:</strong> ${testType} <br>
+            <strong>الملاحظات:</strong> ${note || "لا توجد"} <br>
+            <strong>اسم المعمل:</strong> ${labName} <br>
+            <strong>رقم التواصل:</strong> ${labContact || "غير محدد"} <br>
+            <strong>التاريخ:</strong> ${dateStr} - <strong>الوقت:</strong> ${timeStr} <br>
+            ${imgSrc ? `<img src="${imgSrc}" alt="ملف التحليل">` : ""}
+        `;
+        testList.prepend(entry);
+
+        // حفظ نسخة في LocalStorage بدون تكرار
+        let allRecords = JSON.parse(localStorage.getItem("allMedicalRecords")) || [];
+        const key = testType + "|" + labName + "|" + note + "|" + dateStr + "|" + timeStr;
+        const exists = allRecords.some(r => r.key === key && r.section === "التحاليل الطبية");
+        if(!exists){
+            const record = {
+                section: "التحاليل الطبية",
+                testType,
+                note,
+                labName,
+                labContact,
+                date: dateStr,
+                time: timeStr,
+                image: imgSrc || null,
+                key
+            };
+            allRecords.push(record);
+            localStorage.setItem("allMedicalRecords", JSON.stringify(allRecords));
+        }
+    }
+
+    if(fileInput.files.length > 0){
+        const reader = new FileReader();
+        reader.onload = function(e){
+            addEntry(e.target.result);
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    } else {
+        addEntry(null);
+    }
+
+    // مسح الحقول بعد الحفظ
+    document.getElementById('testNote').value = "";
+    document.getElementById('labName').value = "";
+    document.getElementById('labContact').value = "";
+    document.getElementById('testFile').value = "";
+}
+
+// تحميل البيانات عند فتح الصفحة
+window.onload = function(){
+    const allRecords = JSON.parse(localStorage.getItem("allMedicalRecords")) || [];
+    allRecords.filter(r => r.section === "التحاليل الطبية").forEach(record => {
+        const entry = document.createElement('div');
+        entry.className = "test-entry";
+        entry.innerHTML = `
+            <strong>نوع التحليل:</strong> ${record.testType} <br>
+            <strong>الملاحظات:</strong> ${record.note || "لا توجد"} <br>
+            <strong>اسم المعمل:</strong> ${record.labName} <br>
+            <strong>رقم التواصل:</strong> ${record.labContact || "غير محدد"} <br>
+            <strong>التاريخ:</strong> ${record.date} - <strong>الوقت:</strong> ${record.time} <br>
+            ${record.image ? `<img src="${record.image}" alt="ملف التحليل">` : ""}
+        `;
+        testList.prepend(entry);
+    });
+};
+</script>
+
+</body>
+</html>

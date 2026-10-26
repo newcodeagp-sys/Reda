@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الأشعة الطبية</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            background-color: #f0f4f7;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #0d6efd;
+        }
+        .radiology-card {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="file"], select, textarea {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        textarea { height: 60px; resize: vertical; }
+        button {
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover { background-color: #0b5ed7; }
+        .preview-container { margin-top: 15px; }
+        .preview-container img {
+            max-width: 100%;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+        }
+        .radiology-entry {
+            background-color: #e9f0ff;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>الأشعة الطبية</h1>
+
+    <div class="radiology-card">
+        <label>نوع الأشعة</label>
+        <select id="radiologyType">
+            <option value="أشعة سينية">أشعة سينية</option>
+            <option value="موجات فوق صوتية">موجات فوق صوتية</option>
+            <option value="CT">CT</option>
+            <option value="MRI">MRI</option>
+            <option value="PET">PET</option>
+        </select>
+
+        <label>رفع ملف الأشعة (صورة)</label>
+        <input type="file" id="radiologyFile" accept="image/*">
+
+        <label>ملاحظة عن الأشعة</label>
+        <textarea id="radiologyNote" placeholder="أضف ملاحظتك هنا"></textarea>
+
+        <button onclick="saveRadiology()">حفظ الأشعة</button>
+    </div>
+
+    <h2>الأشعة المحفوظة</h2>
+    <div id="radiologyList" class="preview-container"></div>
+
+    <script>
+function saveRadiology() {
+    const note = document.getElementById('radiologyNote').value;
+    const type = document.getElementById('radiologyType').value;
+    const fileInput = document.getElementById('radiologyFile');
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ar-EG');
+    const timeStr = now.toLocaleTimeString('ar-EG');
+
+    function addEntryToSection(imgSrc) {
+        // عرض داخل القسم
+        const sectionList = document.getElementById('radiologyList');
+        const entry = document.createElement('div');
+        entry.className = "radiology-entry";
+        entry.innerHTML = `
+            <strong>نوع الأشعة:</strong> ${type} <br>
+            <strong>الملاحظات:</strong> ${note || "لا توجد"} <br>
+            <strong>التاريخ:</strong> ${dateStr} - <strong>الوقت:</strong> ${timeStr} <br>
+            ${imgSrc ? `<img src="${imgSrc}" style="max-width:100%; border:1px solid #ccc; border-radius:8px;">` : ""}
+        `;
+        sectionList.prepend(entry);
+
+        // حفظ نسخة في السجلات (localStorage)
+        let allRecords = JSON.parse(localStorage.getItem("allMedicalRecords")) || [];
+        
+        // تحقق من التكرار: لا تضيف نفس الأشعة مرتين
+        const key = type + "|" + note + "|" + dateStr + "|" + timeStr;
+        const exists = allRecords.some(r => r.key === key && r.section === "الأشعة");
+        if (!exists) {
+            const record = {
+                section: "الأشعة",
+                type,
+                note,
+                date: dateStr,
+                time: timeStr,
+                image: imgSrc || null,
+                key // مفتاح للتأكد من عدم التكرار
+            };
+            allRecords.push(record);
+            localStorage.setItem("allMedicalRecords", JSON.stringify(allRecords));
+        }
+    }
+
+    if (fileInput.files.length > 0) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            addEntryToSection(e.target.result);
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    } else {
+        addEntryToSection(null);
+    }
+
+    // مسح الحقول
+    document.getElementById('radiologyNote').value = "";
+    document.getElementById('radiologyFile').value = "";
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>قسم الأعصاب</title>
+<style>
+body {
+    font-family: 'Tahoma', sans-serif;
+    direction: rtl;
+    background-color: #eef7f2;
+    margin: 0;
+    padding: 20px;
+}
+h1 { text-align: center; color: #198754; }
+.section {
+    background: #fff;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 15px 0;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+label { font-weight: bold; display: block; margin-bottom: 5px; }
+input[type="file"], textarea { width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 8px; }
+textarea { height: 60px; resize: vertical; }
+button {
+    background-color: #198754;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+button:hover { background-color: #157347; }
+.case-entry {
+    background-color: #eaf8f0;
+    padding: 10px;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+.case-entry img { max-width: 100%; border-radius: 8px; margin-top: 8px; border: 1px solid #ccc; }
+</style>
+</head>
+<body>
+
+<h1>🧠 قسم الأعصاب</h1>
+
+<div class="section">
+    <label>اسم الحالة / التقرير</label>
+    <textarea id="neuroName" placeholder="أدخل اسم الحالة أو نوع الفحص..."></textarea>
+
+    <label>رفع صورة الأشعة أو التقرير</label>
+    <input type="file" id="neuroFile" accept="image/*">
+
+    <label>ملاحظات الطبيب أو المريض</label>
+    <textarea id="neuroNote" placeholder="أدخل ملاحظتك أو تشخيص الحالة..."></textarea>
+
+    <button onclick="saveNeuroCase()">حفظ الحالة</button>
+</div>
+
+<h2>📋 سجل المريض</h2>
+<div id="neuroList"></div>
+
+<script>
+const neuroList = document.getElementById('neuroList');
+
+function saveNeuroCase() {
+    const name = document.getElementById('neuroName').value.trim();
+    const note = document.getElementById('neuroNote').value.trim();
+    const fileInput = document.getElementById('neuroFile');
+
+    if(!name) {
+        alert("من فضلك أدخل اسم الحالة أو التقرير");
+        return;
+    }
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ar-EG');
+    const timeStr = now.toLocaleTimeString('ar-EG');
+
+    function addEntry(imgSrc) {
+        const entry = document.createElement('div');
+        entry.className = "case-entry";
+        entry.innerHTML = `
+            <strong>اسم الحالة:</strong> ${name} <br>
+            <strong>التاريخ:</strong> ${dateStr} - <strong>الوقت:</strong> ${timeStr} <br>
+            <strong>الملاحظات:</strong> ${note || "لا توجد"} <br>
+            ${imgSrc ? `<img src="${imgSrc}" alt="تقرير الأعصاب">` : ""}
+        `;
+        neuroList.prepend(entry);
+
+        // حفظ نسخة في السجلات (localStorage)
+        let allRecords = JSON.parse(localStorage.getItem("allMedicalRecords")) || [];
+        allRecords.push({
+            section: "الأعصاب",
+            name,
+            note,
+            date: dateStr,
+            time: timeStr,
+            image: imgSrc || null
+        });
+        localStorage.setItem("allMedicalRecords", JSON.stringify(allRecords));
+    }
+
+    if(fileInput.files.length > 0) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            addEntry(e.target.result);
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    } else {
+        addEntry(null);
+    }
+
+    document.getElementById('neuroName').value = "";
+    document.getElementById('neuroNote').value = "";
+    document.getElementById('neuroFile').value = "";
+}
+
+// عرض السجلات عند تحميل الصفحة
+window.onload = function() {
+    const allRecords = JSON.parse(localStorage.getItem("allMedicalRecords")) || [];
+    allRecords.filter(r => r.section === "الأعصاب").forEach(record => {
+        const entry = document.createElement('div');
+        entry.className = "case-entry";
+        entry.innerHTML = `
+            <strong>اسم الحالة:</strong> ${record.name} <br>
+            <strong>التاريخ:</strong> ${record.date} - <strong>الوقت:</strong> ${record.time} <br>
+            <strong>الملاحظات:</strong> ${record.note || "لا توجد"} <br>
+            ${record.image ? `<img src="${record.image}" alt="تقرير الأعصاب">` : ""}
+        `;
+        neuroList.prepend(entry);
+    });
+};
+</script>
+
+</body>
+</html>

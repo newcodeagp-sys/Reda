@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الأمراض المزمنة</title>
+<style>
+body {
+    font-family: 'Tahoma', sans-serif;
+    direction: rtl;
+    background: #f0f8ff;
+    margin: 0;
+    padding: 20px;
+}
+h1 { text-align: center; color: #006400; margin-bottom: 20px; font-size: 2em; }
+.section {
+    background: #fff;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+}
+label { font-weight: bold; display: block; margin-top: 10px; }
+input, textarea { width: 100%; padding: 10px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 1em; }
+textarea { height: 60px; resize: vertical; }
+button { background-color: #006400; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 1em; }
+button:hover { background-color: #004d00; }
+.case-entry {
+    background: #e0ffe0;
+    border-left: 6px solid #006400;
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 15px;
+    transition: transform 0.2s;
+}
+.case-entry:hover { transform: scale(1.02); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
+.case-entry img, .case-entry video { max-width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid #ccc; }
+</style>
+</head>
+<body>
+
+<h1>🩺 الأمراض المزمنة</h1>
+
+<div class="section">
+    <label>اسم المرض المزمن</label>
+    <input type="text" id="chronicName" placeholder="مثلاً: ضغط، سكري، قلب...">
+
+    <label>ملاحظات الطبيب أو المريض</label>
+    <textarea id="chronicNote" placeholder="أدخل أي ملاحظات مهمة..."></textarea>
+
+    <label>رفع صورة أو تقرير (اختياري)</label>
+    <input type="file" id="chronicFile" accept="image/*,video/*">
+
+    <button onclick="saveChronicCase()">حفظ الحالة</button>
+</div>
+
+<h2>📋 سجل المرضى</h2>
+<div id="chronicList"></div>
+
+<script>
+const chronicList = document.getElementById('chronicList');
+
+function saveChronicCase() {
+    const name = document.getElementById('chronicName').value.trim();
+    const note = document.getElementById('chronicNote').value.trim();
+    const fileInput = document.getElementById('chronicFile');
+
+    if(!name) {
+        alert("من فضلك أدخل اسم المرض المزمن");
+        return;
+    }
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ar-EG');
+    const timeStr = now.toLocaleTimeString('ar-EG');
+
+    function addEntry(mediaSrc, mediaType) {
+        const entry = document.createElement('div');
+        entry.className = 'case-entry';
+        entry.innerHTML = `
+            <strong>اسم المرض المزمن:</strong> ${name} <br>
+            <strong>الملاحظات:</strong> ${note || "لا توجد"} <br>
+            <strong>التاريخ:</strong> ${dateStr} - <strong>الوقت:</strong> ${timeStr} <br>
+            ${mediaSrc ? (mediaType && mediaType.startsWith('video') ? `<video src="${mediaSrc}" controls></video>` : `<img src="${mediaSrc}" alt="تقرير/صورة">`) : ""}
+        `;
+        chronicList.prepend(entry);
+
+        // حفظ نسخة في localStorage
+        let allRecords = JSON.parse(localStorage.getItem("allMedicalRecords")) || [];
+        const record = {
+            section: "الأمراض المزمنة",
+            name,
+            note,
+            date: dateStr,
+            time: timeStr,
+            media: mediaSrc || null,
+            mediaType: mediaType || null
+        };
+        allRecords.push(record);
+        localStorage.setItem("allMedicalRecords", JSON.stringify(allRecords));
+    }
+
+    if(fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            addEntry(e.target.result, file.type);
+        };
+        reader.readAsDataURL(file);
+    } else {
+        addEntry(null, null);
+    }
+
+    document.getElementById('chronicName').value = '';
+    document.getElementById('chronicNote').value = '';
+    document.getElementById('chronicFile').value = '';
+}
+
+// تحميل البيانات عند فتح الصفحة
+window.onload = function() {
+    const allRecords = JSON.parse(localStorage.getItem("allMedicalRecords")) || [];
+    allRecords.filter(r => r.section === "الأمراض المزمنة").forEach(record => {
+        const entry = document.createElement('div');
+        entry.className = 'case-entry';
+        entry.innerHTML = `
+            <strong>اسم المرض المزمن:</strong> ${record.name} <br>
+            <strong>الملاحظات:</strong> ${record.note || "لا توجد"} <br>
+            <strong>التاريخ:</strong> ${record.date} - <strong>الوقت:</strong> ${record.time} <br>
+            ${record.media ? (record.mediaType && record.mediaType.startsWith('video') ? `<video src="${record.media}" controls></video>` : `<img src="${record.media}" alt="تقرير/صورة">`) : ""}
+        `;
+        chronicList.prepend(entry);
+    });
+};
+</script>
+
+</body>
+</html>

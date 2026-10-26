@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>قسم النساء والتوليد - متقدم</title>
+<style>
+body {
+    font-family: 'Tahoma', sans-serif;
+    direction: rtl;
+    background-color: #eef7f2;
+    margin: 0;
+    padding: 20px;
+}
+h1 { text-align: center; color: #198754; }
+.section {
+    background: #fff;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 15px 0;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+label { font-weight: bold; display: block; margin-bottom: 5px; }
+input[type="text"], input[type="number"], input[type="file"], select, textarea {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+textarea { height: 60px; resize: vertical; }
+button { background-color: #198754; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
+button:hover { background-color: #157347; }
+.case-entry {
+    background-color: #eaf8f0;
+    padding: 10px;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+.case-entry img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-top: 8px;
+    border: 1px solid #ccc;
+}
+.flex-row { display: flex; gap: 10px; }
+.flex-row input { width: 48%; }
+</style>
+</head>
+<body>
+
+<h1>🤰 قسم النساء والتوليد - متقدم</h1>
+
+<div class="section">
+    <label>اسم الحالة / التقرير</label>
+    <textarea id="obgynName" placeholder="أدخل اسم الحالة أو نوع الفحص..."></textarea>
+
+    <div class="flex-row">
+        <div>
+            <label>عمر الحمل (إذا كانت حامل)</label>
+            <input type="number" id="pregnancyAge" placeholder="بالأسابيع">
+        </div>
+        <div>
+            <label>الأسبوع الحالي من الحمل</label>
+            <input type="number" id="currentWeek" placeholder="مثلاً: 12">
+        </div>
+    </div>
+
+    <label>نوع الفحص</label>
+    <select id="examType">
+        <option value="">اختر نوع الفحص</option>
+        <option value="سونار">سونار</option>
+        <option value="تحاليل">تحاليل</option>
+        <option value="متابعة حمل">متابعة حمل</option>
+    </select>
+
+    <label>رفع صورة الفحص أو التقرير</label>
+    <input type="file" id="obgynFile" accept="image/*">
+
+    <label>ملاحظات الطبيب أو المريضة</label>
+    <textarea id="obgynNote" placeholder="أدخل ملاحظتك أو تشخيص الحالة..."></textarea>
+
+    <button onclick="saveObgynCase()">حفظ الحالة</button>
+</div>
+
+<h2>📋 سجل المريضة</h2>
+<div id="obgynList"></div>
+
+<script>
+const obgynList = document.getElementById('obgynList');
+
+function saveObgynCase() {
+    const name = document.getElementById('obgynName').value.trim();
+    const pregnancyAge = document.getElementById('pregnancyAge').value.trim();
+    const currentWeek = document.getElementById('currentWeek').value.trim();
+    const examType = document.getElementById('examType').value;
+    const note = document.getElementById('obgynNote').value.trim();
+    const fileInput = document.getElementById('obgynFile');
+
+    if(!name){
+        alert("من فضلك أدخل اسم الحالة أو التقرير");
+        return;
+    }
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ar-EG');
+    const timeStr = now.toLocaleTimeString('ar-EG');
+
+    function addEntry(imgSrc){
+        const entry = document.createElement('div');
+        entry.className = "case-entry";
+        entry.innerHTML = `
+            <strong>اسم الحالة:</strong> ${name} <br>
+            <strong>عمر الحمل:</strong> ${pregnancyAge ? pregnancyAge + " أسبوع" : "غير محدد"} <br>
+            <strong>الأسبوع الحالي من الحمل:</strong> ${currentWeek ? currentWeek : "غير محدد"} <br>
+            <strong>نوع الفحص:</strong> ${examType || "غير محدد"} <br>
+            <strong>التاريخ:</strong> ${dateStr} - <strong>الوقت:</strong> ${timeStr} <br>
+            <strong>الملاحظات:</strong> ${note || "لا توجد"} <br>
+            ${imgSrc ? `<img src="${imgSrc}" alt="تقرير النساء والتوليد">` : ""}
+        `;
+        obgynList.prepend(entry);
+
+        // حفظ نسخة في localStorage
+        let allRecords = JSON.parse(localStorage.getItem("allMedicalRecords")) || [];
+        const key = name + "|" + pregnancyAge + "|" + currentWeek + "|" + examType + "|" + note + "|" + dateStr + "|" + timeStr;
+        const exists = allRecords.some(r => r.key === key && r.section === "النساء والتوليد");
+        if(!exists){
+            const record = {
+                section: "النساء والتوليد",
+                name,
+                pregnancyAge,
+                currentWeek,
+                examType,
+                note,
+                date: dateStr,
+                time: timeStr,
+                image: imgSrc || null,
+                key
+            };
+            allRecords.push(record);
+            localStorage.setItem("allMedicalRecords", JSON.stringify(allRecords));
+        }
+    }
+
+    if(fileInput.files.length > 0){
+        const reader = new FileReader();
+        reader.onload = function(e){
+            addEntry(e.target.result);
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    } else {
+        addEntry(null);
+    }
+
+    // مسح الحقول بعد الحفظ
+    document.getElementById('obgynName').value = "";
+    document.getElementById('pregnancyAge').value = "";
+    document.getElementById('currentWeek').value = "";
+    document.getElementById('examType').value = "";
+    document.getElementById('obgynNote').value = "";
+    document.getElementById('obgynFile').value = "";
+}
+
+// تحميل البيانات عند فتح الصفحة
+window.onload = function(){
+    const allRecords = JSON.parse(localStorage.getItem("allMedicalRecords")) || [];
+    allRecords.filter(r => r.section === "النساء والتوليد").forEach(record => {
+        const entry = document.createElement('div');
+        entry.className = "case-entry";
+        entry.innerHTML = `
+            <strong>اسم الحالة:</strong> ${record.name} <br>
+            <strong>عمر الحمل:</strong> ${record.pregnancyAge ? record.pregnancyAge + " أسبوع" : "غير محدد"} <br>
+            <strong>الأسبوع الحالي من الحمل:</strong> ${record.currentWeek ? record.currentWeek : "غير محدد"} <br>
+            <strong>نوع الفحص:</strong> ${record.examType || "غير محدد"} <br>
+            <strong>التاريخ:</strong> ${record.date} - <strong>الوقت:</strong> ${record.time} <br>
+            <strong>الملاحظات:</strong> ${record.note || "لا توجد"} <br>
+            ${record.image ? `<img src="${record.image}" alt="تقرير النساء والتوليد">` : ""}
+        `;
+        obgynList.prepend(entry);
+    });
+};
+</script>
+
+</body>
+</html>
